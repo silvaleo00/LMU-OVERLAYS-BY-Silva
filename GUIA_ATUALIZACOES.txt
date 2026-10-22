@@ -1,0 +1,37 @@
+ATUALIZAÇÕES AUTOMÁTICAS — como funciona e como pôr a funcionar
+===============================================================
+
+Como funciona
+  - Cada versão que publicas fica numa "Release" do teu repositório no GitHub, com o
+    LMU_Overlays_Windows.zip (compilado pelo próprio GitHub, não precisas de compilar).
+  - A app dos teus amigos vê, ao arrancar (e de 6 em 6 horas), se há versão nova.
+  - Se houver, aparece no painel o botão "Atualizar para X". Ao carregar, a app
+    descarrega, fecha, troca os ficheiros e volta a abrir. As definições
+    (config.json), os mapas e as voltas de referência (pasta data) ficam como estavam.
+
+Preparar (uma vez só)
+  1. Cria uma conta no GitHub (github.com) e um repositório PÚBLICO, ex.: lmu-overlays.
+     (Tem de ser público para os teus amigos conseguirem descarregar sem conta.)
+  2. Instala o Git: https://git-scm.com/download/win
+  3. Numa linha de comandos, dentro desta pasta:
+        git init
+        git add -A
+        git commit -m "primeira versão"
+        git branch -M main
+        git remote add origin https://github.com/O_TEU_UTILIZADOR/lmu-overlays.git
+        git push -u origin main
+  4. Publica a primeira versão: duplo clique em publicar_versao.bat e escreve 1.0.0.
+     Espera ~5 minutos (separador Actions no GitHub). Na página "Releases" aparece a
+     versão com o zip. Envia ESSE zip aos teus amigos — já vem configurado para se
+     atualizar sozinho a partir do teu repositório.
+
+Publicar uma atualização (sempre que mudares alguma coisa)
+  - Duplo clique em publicar_versao.bat, escreve o número novo (ex.: 1.1.0, tem de ser
+    maior que o anterior) e uma linha a dizer o que mudou. Mais nada.
+
+Notas
+  - O número da versão e o repositório são postos no .exe automaticamente pelo GitHub.
+  - Quem corre a app com Python (iniciar.bat) não é atualizado automaticamente: o botão
+    abre a página da versão.
+  - O Windows pode mostrar o aviso SmartScreen na primeira vez que a versão nova abre
+    (o .exe não é assinado): "Mais informações" > "Executar mesmo assim".

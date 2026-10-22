@@ -1,0 +1,64 @@
+﻿LMU OVERLAYS
+============
+
+--- PORTUGUÊS ---------------------------------------------------------------
+
+Não precisas de instalar nada (nem Python).
+
+1) No painel, em "Simulador", escolhe o jogo: Le Mans Ultimate ou iRacing.
+   - Le Mans Ultimate: Definições > Gameplay > Enable Plugins: ON (sem isto não aparecem dados)
+   - iRacing: não é preciso fazer nada
+   - Nos dois: ecrã em Borderless (ou Windowed). Em Fullscreen os overlays não aparecem.
+
+2) Extrai esta pasta para um sítio teu (ex.: Documentos), não para "Program Files".
+
+3) Abre "LMU Overlays.exe".
+   Se o Windows disser "O Windows protegeu o computador":
+   "Mais informações" > "Executar mesmo assim" (o programa não tem assinatura digital).
+
+4) No painel: escolhe a língua, liga os overlays que queres e em que sessões aparecem
+   (T = treino, Q = qualificação, C = corrida). "Desbloquear para mover" para os arrastar;
+   roda do rato muda o tamanho; depois "Bloquear".
+
+Atalhos durante o jogo (também podes usar botões do volante, no painel):
+   Ctrl+Shift+Espaço  mostrar tudo durante 8 s
+   Ctrl+Shift+O       esconder/mostrar tudo
+   Ctrl+Shift+L  desbloquear/bloquear para mover
+   Ctrl+Shift+P  abrir o painel
+
+Se algo não funcionar: painel > Sistema > "Criar relatório de diagnóstico" e envia o ficheiro
+(fica no Ambiente de Trabalho) a quem te deu a app. Tudo se configura no painel.
+
+--- ENGLISH -----------------------------------------------------------------
+
+Nothing to install (no Python needed).
+
+1) In the panel, under "Simulator", pick the game: Le Mans Ultimate or iRacing.
+   - Le Mans Ultimate: Settings > Gameplay > Enable Plugins: ON (without this there is no data)
+   - iRacing: nothing to do
+   - Both: display mode Borderless (or Windowed). Overlays can't draw over exclusive Fullscreen.
+
+2) Extract this folder somewhere of your own (e.g. Documents), not "Program Files".
+
+3) Open "LMU Overlays.exe".
+   If Windows says "Windows protected your PC":
+   "More info" > "Run anyway" (the program is not digitally signed).
+
+4) In the panel: pick your language, enable the overlays you want and the sessions they show
+   in (P = practice, Q = qualifying, R = race). "Unlock to move" lets you drag them; mouse
+   wheel changes the size; then "Lock" again.
+
+In-game hotkeys (wheel buttons can be assigned in the panel):
+   Ctrl+Shift+Space  show everything for 8 s
+   Ctrl+Shift+O  hide/show everything
+   Ctrl+Shift+L  unlock/lock to move
+   Ctrl+Shift+P  open the panel
+
+If something doesn't work: panel > System > "Create diagnostic report" and send the file
+(saved on your Desktop) to whoever gave you the app. Everything is set up from the panel.
+
+LAYOUTS (guardar as posições)
+- As posições guardam-se sozinhas quando carregas em Bloquear (e ficam guardadas mesmo depois de atualizar a app).
+- No menu "Layouts" podes guardar vários layouts com nome (ex.: "LMU Hypercar", "iRacing GT3") e trocar com um clique.
+- Em "Usar automaticamente" escolhes um layout para cada jogo: ao mudar de jogo no Início, as posições mudam sozinhas.
+- Se usares outro monitor/resolução, as posições são ajustadas e nenhum overlay fica fora do ecrã.

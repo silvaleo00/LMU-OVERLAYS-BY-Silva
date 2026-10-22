@@ -1,0 +1,23 @@
+LOGÓTIPOS DAS MARCAS
+====================
+
+Põe aqui os logótipos (PNG, de preferência com fundo transparente) ANTES de correr o
+criar_exe.bat / publicar a versão: vão dentro da app para todos os teus amigos.
+Cada utilizador também pode juntar ou trocar logótipos no painel (Look > Logótipos das marcas).
+
+O nome do ficheiro é o código da marca OU o nome da marca, em minúsculas. Exemplos:
+  FER.png  ou  ferrari.png
+  POR.png  ou  porsche.png
+
+Códigos:
+  TOY toyota      FER ferrari      POR porsche      CAD cadillac     BMW bmw
+  ALP alpine      PEU peugeot      AST aston        LAM lamborghini  ISO isotta
+  GLI glickenhaus VAN vanwall      ORE oreca        LIG ligier       GIN ginetta
+  DUQ duqueine    LEX lexus        MCL mclaren      COR corvette     FOR ford
+  MER mercedes    GEN genesis      ACU acura        HON honda        NIS nissan
+  AUD audi
+
+Onde aparecem: Timing Tower, Relative, Standings, Battle e o cartão do Team Radio.
+Sem ficheiro, a marca continua a aparecer como código com a cor da marca.
+O logótipo fica numa placa clara pequena (~36 x 16 px): os logótipos simples (só o
+símbolo, com cor) leem-se melhor do que os que têm texto comprido.

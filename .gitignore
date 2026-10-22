@@ -1,0 +1,9 @@
+.build-venv/
+build/
+dist/
+__pycache__/
+config.json
+lmu_overlays.log
+data/delta_refs/
+previews/*.png
+!previews/exemplo_1080p.png
