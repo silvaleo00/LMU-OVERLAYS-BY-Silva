@@ -217,6 +217,11 @@ class ControlPanel(QWidget):
         cl.addLayout(row)
         lay.addWidget(c)
         lay.addStretch(1)
+        sign = label("Made by Silva  ·  silva.leo on Discord for suggestions or fixes", "dim")
+        sign.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sign.setStyleSheet("color: #6f778a; font-size: 12px; padding-top: 8px;")
+        sign.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        lay.addWidget(sign)
         return w
 
     def _overlays(self) -> QWidget:
