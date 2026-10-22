@@ -80,7 +80,7 @@ def label(text: str, name: str = "", wrap: bool = False) -> QLabel:
     return lb
 
 
-def page(title: str, sub: str = "") -> tuple[QWidget, QVBoxLayout]:
+def page(title: str, sub: str = "", badge: str = "") -> tuple[QWidget, QVBoxLayout]:
     """Página com título e conteúdo que faz scroll."""
     outer = QWidget()
     ol = QVBoxLayout(outer)
@@ -91,7 +91,19 @@ def page(title: str, sub: str = "") -> tuple[QWidget, QVBoxLayout]:
     lay = QVBoxLayout(inner)
     lay.setContentsMargins(22, 18, 22, 18)
     lay.setSpacing(10)
-    lay.addWidget(label(title, "h1"))
+    if badge:                                   # título + etiqueta no canto direito
+        top = QHBoxLayout()
+        top.addWidget(label(title, "h1"))
+        top.addStretch(1)
+        b = QLabel(badge)
+        b.setStyleSheet("background: #3a2a05; color: #ffb400; border: 1px solid #ffb400; border-radius: 6px;"
+                        " padding: 3px 9px; font-size: 11px; font-weight: 700;")
+        b.setToolTip("These overlays are still in development: things may change or break. "
+                     "Send suggestions or bugs to silva.leo on Discord.")
+        top.addWidget(b)
+        lay.addLayout(top)
+    else:
+        lay.addWidget(label(title, "h1"))
     if sub:
         lay.addWidget(label(sub, "dim", wrap=True))
     sc.setWidget(inner)
@@ -120,7 +132,7 @@ class ControlPanel(QWidget):
         super().__init__(None)
         self.app = app
         self.replacing = False
-        self.setWindowTitle("LMU Overlays")
+        self.setWindowTitle("LMU Overlays (Beta)")
         self.setWindowIcon(app.icon)
         self.resize(860, 660)
         self.setMinimumSize(720, 520)
@@ -157,7 +169,7 @@ class ControlPanel(QWidget):
     # ------------------------------------------------------------------ #
     def _home(self) -> QWidget:
         app, g = self.app, self.app.cfg["global"]
-        w, lay = page(tr("nav.home"), tr("home.sub"))
+        w, lay = page(tr("nav.home"), tr("home.sub"), badge="BETA · in development")
         c, cl = card()
         top = QHBoxLayout()
         self.dot = QLabel("●")
