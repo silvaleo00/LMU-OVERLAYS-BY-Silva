@@ -71,12 +71,10 @@ if errorlevel 1 (
 powershell -NoProfile -Command "(Get-Content 'lmuov\version.py') -replace '^VERSION = .*', 'VERSION = \"!NEW!\"' | Set-Content 'lmuov\version.py' -Encoding utf8"
 "!GIT!" add -A
 "!GIT!" commit -m "v!NEW!: !MSG!"
-"!GIT!" tag -a "v!NEW!" -m "!MSG!"
 echo.
 echo A enviar para o GitHub ^(na primeira vez abre o browser para entrares na tua conta^) ...
+"!GIT!" pull --rebase origin main
 "!GIT!" push -u origin main
-if errorlevel 1 goto erro
-"!GIT!" push origin "v!NEW!"
 if errorlevel 1 goto erro
 
 echo.
