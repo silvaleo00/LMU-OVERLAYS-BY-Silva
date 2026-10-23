@@ -31,10 +31,10 @@ ICONS = {"home": "🏁", "overlays": "🧩", "layouts": "📐", "look": "🎨", 
 
 QSS = """
 QWidget { background: #15171c; color: #e8ebf1; font-size: 13px; }
-QListWidget#nav { background: #0f1115; border: none; padding: 8px 6px; font-size: 14px; }
-QListWidget#nav::item { padding: 10px 12px; border-radius: 8px; margin: 2px 0; }
-QListWidget#nav::item:selected { background: #2b6cff; color: white; }
-QListWidget#nav::item:hover:!selected { background: #1d2028; }
+QListWidget#nav { background: #b3121b; color: white; border: none; padding: 8px 6px; font-size: 14px; }
+QListWidget#nav::item { padding: 10px 12px; border-radius: 8px; margin: 2px 0; color: white; }
+QListWidget#nav::item:selected { background: white; color: #b3121b; font-weight: 700; }
+QListWidget#nav::item:hover:!selected { background: #cf2a33; }
 QLabel#h1 { font-size: 20px; font-weight: 700; }
 QLabel#h2 { font-size: 12px; font-weight: 700; color: #8a93a6; letter-spacing: 1px; margin-top: 10px; }
 QLabel#dim { color: #8a93a6; }
