@@ -917,7 +917,8 @@ class OverlayApp:
             snap = None
         ctx = self.trackers.update(snap, now)
         ctx.edit_mode = self.edit_mode
-        driving = snap is not None and snap.session.in_realtime
+        # numa sessão (em pista OU na garagem/monitor, ex. endurance com o colega ao volante) = mostra
+        driving = snap is not None and (snap.session.in_realtime or self.cfg["global"].get("show_in_garage", True))
         show_all = not self.hidden and (self.edit_mode or driving or not self.cfg["global"]["hide_when_not_driving"])
         group = session_group(snap.session.kind) if snap is not None else None
         targets = {}

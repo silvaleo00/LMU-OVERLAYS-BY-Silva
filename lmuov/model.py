@@ -182,6 +182,7 @@ class Session:
     sector_flags: tuple[int, int, int] = (0, 0, 0)  # S1, S2, S3 (1 = amarela)
     current_et: float = 0.0
     end_et: float = 0.0
+    sector_bounds: tuple = ()     # início do S2 e S3 (fração da volta) quando o jogo diz (iRacing)
     max_laps: int = 0             # 0 = sessão por tempo
     track_length: float = 0.0
     in_realtime: bool = False

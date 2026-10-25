@@ -38,7 +38,7 @@ class Flag:
 
 def active_flags(snap, ctx, cfg: dict | None = None) -> list[Flag]:
     cfg = {**FLAG_DEFAULTS, **(cfg or {})}
-    if snap is None or not snap.session.in_realtime or snap.me.in_garage:
+    if snap is None or snap.me.in_garage or snap.me.in_pits and snap.me.speed < 1:
         return []
     s, me = snap.session, snap.me
     out: list[Flag] = []
@@ -55,8 +55,8 @@ def active_flags(snap, ctx, cfg: dict | None = None) -> list[Flag]:
     if s.phase == 6:
         out.append(Flag("fcy", tr("flag.fcy"), tr(f"flag.fcy{s.yellow_state}" if 1 <= s.yellow_state <= 6
                                                      else "flag.fcy0")))
-    if s.phase != 6 and any(f == 1 for f in s.sector_flags):
-        y = _yellow_ahead(snap, cfg)
+    if s.phase != 6:
+        y = _yellow_here(snap, cfg)
         if y:
             out.append(y)
     if me.flag == 6:
@@ -72,21 +72,23 @@ def active_flags(snap, ctx, cfg: dict | None = None) -> list[Flag]:
     return out
 
 
-def _yellow_ahead(snap, cfg):
+def _yellow_here(snap, cfg):
+    """Amarela como no LMU: só quando o jogo a mostra ao teu carro (estás sob amarela) ou quando o
+    setor onde ESTÁS tem amarela. Nada de avisos antecipados do setor seguinte."""
     me, s = snap.me, snap.session
+    cur = me.sector if 0 <= me.sector < 3 else 0
+    if not (me.under_yellow or (len(s.sector_flags) > cur and s.sector_flags[cur] == 1)):
+        return None
     rng = float(cfg["yellow_range_m"])
     slow = float(cfg["slow_kmh"]) / 3.6
     cands = [r for r in relatives(snap, include_pits=False) if 0 < r.dist <= rng and r.v.speed < slow]
-    if cands:
+    if cands:                                   # quem está lento à frente, para saberes onde
         r = min(cands, key=lambda r: r.dist)
         who = f"#{r.v.number} " if r.v.number else ""
         state = tr("flag.stopped") if r.v.speed < 3 else tr("flag.slow")
-        return Flag("yellow", tr("flag.yellow"), tr("flag.yellow_car", who=who, state=state, d=f"{r.dist:.0f}"))
-    cur, nxt = me.sector, (me.sector + 1) % 3
-    if s.sector_flags[cur] == 1 or s.sector_flags[nxt] == 1:
-        sec = cur if s.sector_flags[cur] == 1 else nxt
-        return Flag("yellow", tr("flag.yellow_sector", n=sec + 1), tr("flag.yellow_sector_sub"))
-    return None
+        return Flag("yellow", tr("flag.yellow_sector", n=cur + 1),
+                    tr("flag.yellow_car", who=who, state=state, d=f"{r.dist:.0f}"))
+    return Flag("yellow", tr("flag.yellow_sector", n=cur + 1), tr("flag.yellow_sector_sub"))
 
 
 def _blue_sub(snap, cfg):

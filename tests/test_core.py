@@ -366,14 +366,18 @@ def test_team_radio():
     assert not mine.has_content(s, ctx)                 # só uns segundos
     demo.override_me = {}
 
-    near = TeamRadioOverlay()
+    # por defeito: só o teu carro (pedido teu ou de um colega de equipa)
+    rival0 = next(v for v in s.vehicles if v.cls == s.me.cls and abs(v.class_place - s.me.class_place) == 1)
+    ctx.radio = [(ctx.now, rival0.id, "req")]
+    assert TeamRadioOverlay().event(s, ctx) is None
+    near = TeamRadioOverlay({"only_mine": False})
     rival = next(v for v in s.vehicles if v.cls == s.me.cls and abs(v.class_place - s.me.class_place) == 1)
     other = next(v for v in s.vehicles if v.cls != s.me.cls)
     ctx.radio = [(ctx.now, other.id, "in")]
     assert near.event(s, ctx) is None                   # outra classe: não interessa
     ctx.radio.append((ctx.now, rival.id, "req"))
     assert near.event(s, ctx)[0].id == rival.id
-    assert TeamRadioOverlay({"rivals": "all"}).event(s, ctx) is not None
+    assert TeamRadioOverlay({"rivals": "all", "only_mine": False}).event(s, ctx) is not None
     ctx.radio.append((ctx.now - 1, s.me.id, "req"))
     assert near.event(s, ctx)[0].is_player              # o teu pedido tem prioridade
 
@@ -862,6 +866,44 @@ def test_compact_columns():
     x = K.xs(["pos", "name", "gap"], 300)
     assert abs(x["gap"][0] + x["gap"][1] - 296) < 1e-6
     print("colunas compactas ok")
+
+
+def test_relative_time_gap():
+    """Gaps do relativo pela posição em tempo do jogo (como o HUD), com volta à meta."""
+    from lmuov.relcalc import time_gap
+    from lmuov.model import Vehicle
+    me = Vehicle(time_into_lap=50.0)
+    assert abs(time_gap(me, Vehicle(time_into_lap=52.3), 100, 5000, 100) - 2.3) < 1e-9     # à frente
+    assert abs(time_gap(me, Vehicle(time_into_lap=48.1), -80, 5000, 100) + 1.9) < 1e-9     # atrás
+    me2 = Vehicle(time_into_lap=99.0)                                                       # passa a meta
+    assert abs(time_gap(me2, Vehicle(time_into_lap=1.5), 120, 5000, 100) - 2.5) < 1e-9
+    assert abs(time_gap(me, Vehicle(time_into_lap=0.0), 500, 5000, 100) - 10.0) < 1e-9    # sem dados: distância
+    print("gaps do relativo ok")
+
+
+def test_map_from_all_cars_and_yellow():
+    """Mapa feito com todos os carros (sem dar voltas) e amarela só no setor onde estás."""
+    from lmuov.source_demo import DemoSource
+    from lmuov.trackers import TrackMapRecorder
+    from lmuov.flagcalc import active_flags
+    demo = DemoSource()
+    r = TrackMapRecorder(None)
+    t = 0.0
+    while r.map is None and t < 120:
+        demo.step(0.2)
+        t += 0.2
+        r.update(demo.snapshot())
+    assert r.map is not None, "mapa não ficou pronto"
+    s = demo.snapshot()
+    s.session.in_realtime = True
+    s.me.in_pits = s.me.in_garage = False
+    s.session.phase = 5
+    s.session.sector_flags = tuple(1 if k == (s.me.sector + 1) % 3 else 0 for k in range(3))
+    s.me.under_yellow = False
+    assert not any(f.kind == "yellow" for f in active_flags(s, None))     # amarela só no setor seguinte: ainda não
+    s.me.under_yellow = True
+    assert any(f.kind == "yellow" for f in active_flags(s, None))         # o jogo mostra-te a amarela
+    print(f"mapa com todos os carros em {t:.0f} s; amarelas ok")
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):

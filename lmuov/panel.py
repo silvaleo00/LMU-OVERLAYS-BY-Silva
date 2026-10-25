@@ -289,7 +289,8 @@ class ControlPanel(QWidget):
             row.addWidget(mode)
             design = {"damage": ("design", "blueprint", ("blueprint", "engineer", "exploded", "corners", "heatmap", "mini"),
                                  "dmgd", "ui.dmg_design"),
-                      "delta": ("style", "bar", ("bar", "full"), "deltad", "ui.delta_style")}.get(win.ov.key)
+                      "delta": ("style", "bar", ("bar", "full"), "deltad", "ui.delta_style"),
+                      "tyres": ("temp_source", "inner", ("inner", "surface", "carcass"), "tsrc", "ui.tyre_src")}.get(win.ov.key)
             if design:                                  # escolher o design (dano) ou o estilo (delta)
                 opt, dflt, values, pre, tip = design
                 des = QComboBox()
@@ -743,6 +744,10 @@ class ControlPanel(QWidget):
         self.hide_cb.setChecked(bool(g["hide_when_not_driving"]))
         self.hide_cb.toggled.connect(lambda on: app.set_global("hide_when_not_driving", on))
         lay.addWidget(self.hide_cb)
+        self.garage_cb = QCheckBox("  " + tr("ui.garage"))
+        self.garage_cb.setChecked(bool(g.get("show_in_garage", True)))
+        self.garage_cb.toggled.connect(lambda on: app.set_global("show_in_garage", on))
+        lay.addWidget(self.garage_cb)
         reset = QPushButton(tr("ui.reset"))
         reset.clicked.connect(app.reset_positions)
         lay.addWidget(reset)

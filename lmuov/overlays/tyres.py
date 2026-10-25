@@ -12,7 +12,9 @@ PRESSURE = {"kPa": (1.0, "{:.1f}"), "psi": (0.145038, "{:.2f}"), "bar": (0.01, "
 class TyresOverlay(Overlay):
     key = "tyres"
     # cores das temperaturas: "fixed" = escala por graus (limites abaixo), "optimal" = à volta da temperatura ótima
-    defaults = {"show_brakes": True, "fallback_optimal": 88.0, "temp_scale": "fixed",
+    # temp_source: que temperatura mostrar. O LMU dá três: "surface" (superfície, arrefece logo no ar),
+    # "inner" (camada interior da borracha, a que o HUD do jogo mostra) e "carcass" (carcaça).
+    defaults = {"show_brakes": True, "fallback_optimal": 88.0, "temp_scale": "fixed", "temp_source": "inner",
                 "t_blue": 50, "t_light_green": 60, "t_green": 75, "t_yellow": 85}
     default_pos = (1240, 310)
     default_enabled = False
@@ -33,11 +35,21 @@ class TyresOverlay(Overlay):
             opt = t.optimal if t.optimal > 20 else fb
             if t.flat or t.detached:
                 return True
-            if fixed and any(x <= lo or x > hi for x in t.temp_lcr if x > 0):
+            temps = self._temps(t)
+            if fixed and any(x <= lo or x > hi for x in temps if x > 0):
                 return True
-            if not fixed and any(abs(x - opt) > 18 for x in t.temp_lcr):
+            if not fixed and any(abs(x - opt) > 18 for x in temps):
                 return True
         return False
+
+    def _temps(self, t) -> tuple:
+        """As 3 temperaturas (esq./centro/dir.) da fonte escolhida; cai para a superfície se faltar."""
+        src = self.cfg.get("temp_source", "inner")
+        if src == "inner" and any(x > 0 for x in t.inner_lcr):
+            return t.inner_lcr
+        if src == "carcass" and t.carcass > 0:
+            return (t.carcass, t.carcass, t.carcass)
+        return t.temp_lcr
 
     def _tcol(self, temp: float, opt: float) -> tuple:
         if self.cfg.get("temp_scale", "fixed") != "fixed":
@@ -69,7 +81,7 @@ class TyresOverlay(Overlay):
                stroke_w=2 if bad else 1)
         opt = t.optimal if t.optimal > 20 else self.cfg["fallback_optimal"]
         bw = (W - 12 - 4) / 3
-        for k, temp in enumerate(t.temp_lcr):
+        for k, temp in enumerate(self._temps(t)):
             bx = x + 6 + k * (bw + 2)
             col = self._tcol(temp, opt)
             c.rect(bx, y + 6, bw, 26, col, radius=4)

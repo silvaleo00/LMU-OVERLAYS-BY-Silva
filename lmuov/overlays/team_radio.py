@@ -25,7 +25,9 @@ def _lum(c) -> float:
 
 class TeamRadioOverlay(Overlay):
     key = "team_radio"
-    defaults = {"show_s": 6.0, "show_player": True,
+    # only_mine: só os pedidos de boxes do TEU carro (feitos por ti ou por um colega de equipa no
+    # endurance). Desligado = também os pedidos dos rivais por perto.
+    defaults = {"show_s": 6.0, "show_player": True, "only_mine": True,
                 "rivals": "near",          # off, near (perto de ti na classe), class (toda a classe), all
                 "rival_range": 2}          # "near": até N posições à frente/atrás na classe
     default_pos = (1590, 330)
@@ -48,8 +50,11 @@ class TeamRadioOverlay(Overlay):
         show = float(self.cfg["show_s"])
         byid = {v.id: v for v in snap.vehicles}
         rival = None
+        only_mine = self.cfg.get("only_mine", True)
         for t, vid, kind in reversed(getattr(ctx, "radio", ()) or ()):
             if not 0 <= ctx.now - t < show:
+                continue
+            if only_mine and (kind != "req" or vid != snap.me.id):
                 continue
             v = byid.get(vid)
             if v is None:

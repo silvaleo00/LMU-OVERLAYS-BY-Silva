@@ -142,6 +142,27 @@ def _num(v, default: float = 0.0) -> float:
 # Memória do SDK
 # --------------------------------------------------------------------------- #
 
+
+def ir_sector_bounds(info) -> tuple:
+    """Início do S2 e do S3 (fração da volta) a partir do SplitTimeInfo do iRacing. Se a pista tiver
+    mais de 3 setores, usa os limites mais perto de 1/3 e 2/3."""
+    try:
+        secs = info.get("SplitTimeInfo", {}).get("Sectors") or []
+        starts = sorted(float(s.get("SectorStartPct", 0)) for s in secs if isinstance(s, dict))
+    except (AttributeError, TypeError, ValueError):
+        starts = []
+    starts = [x for x in starts if 0.02 < x < 0.98]
+    if len(starts) >= 2:
+        a = min(starts, key=lambda x: abs(x - 1 / 3))
+        b = min((x for x in starts if x > a), key=lambda x: abs(x - 2 / 3), default=None)
+        if b is not None:
+            return (a, b)
+    return (1 / 3, 2 / 3)
+
+
+def _sector_of(p: float, bounds: tuple) -> int:
+    return 0 if p < bounds[0] else (1 if p < bounds[1] else 2)
+
 def ir_license(lic) -> str:
     """"A 4.32" -> "A4.32" (letra da licença + safety rating)."""
     if not isinstance(lic, str) or not lic.strip():
@@ -351,6 +372,8 @@ class IRacingConverter:
         f2 = g("CarIdxF2Time", ())
         cflags = g("CarIdxSessionFlags", ())
         tcomp = g("CarIdxTireCompound", ())
+        bounds = ir_sector_bounds(info)
+        est_t = g("CarIdxEstTime", ())
 
         def arr(a, i, default):
             return a[i] if isinstance(a, tuple) and 0 <= i < len(a) else default
@@ -394,8 +417,9 @@ class IRacingConverter:
                 t_behind_leader=max(0.0, float(arr(f2, i, 0.0))), in_pits=in_pit,
                 in_garage=s == TRK_NOT_IN_WORLD, pit_state=ps, pitstops=self._stops.get(i, 0),
                 is_player=i == me_idx, speed=self._speed.get(i, 0.0), flag=6 if cf & F_BLUE else 0,
-                est_lap=est, sector=min(2, int(max(0.0, p) * 3)), sr=sr, dr=dr, irating=irt,
+                est_lap=est, sector=_sector_of(max(0.0, p), bounds), sr=sr, dr=dr, irating=irt,
                 tyre={0: "D", 1: "W"}.get(int(arr(tcomp, i, -1)), ""),
+                time_into_lap=max(0.0, float(arr(est_t, i, 0.0))),
             )
             vehicles.append(v)
             if v.is_player:
@@ -494,7 +518,7 @@ class IRacingConverter:
             and not bool(g("IsReplayPlaying", False)),
             air_temp=float(g("AirTemp", 0.0)), track_temp=float(g("TrackTempCrew", g("TrackTemp", 0.0))),
             rain=float(g("Precipitation", 0.0)), wetness=max(0.0, min(1.0, (wet - 1) / 6.0)) if wet > 0 else 0.0,
-            wind=wind,
+            wind=wind, sector_bounds=bounds,
             sky=({0: 0, 1: 2, 2: 3, 3: 4}.get(int(g("Skies", -1)), -1) if g("Skies", None) is not None else -1),
         )
         if session.rain > 0.02 and session.sky >= 0:

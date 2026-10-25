@@ -72,6 +72,8 @@ def parse_scoring(d: L.LMUObjectOut) -> tuple[Session, list[Vehicle], Vehicle] |
         return None
     vehicles: list[Vehicle] = []
     me = None
+    pname = _s(si.mPlayerName).strip().lower()
+    by_name = by_ctrl = None
     for i in range(nveh):
         vs = d.scoring.vehScoringInfo[i]
         name = _s(vs.mVehicleName)
@@ -92,8 +94,15 @@ def parse_scoring(d: L.LMUObjectOut) -> tuple[Session, list[Vehicle], Vehicle] |
         vehicles.append(v)
         if v.is_player:
             me = v
-    if me is None:
-        return None
+        elif by_name is None and pname and v.driver.strip().lower() == pname:
+            by_name = v
+        elif by_ctrl is None and int(vs.mControl) == 0:
+            by_ctrl = v
+    if me is None:                       # garagem / colega a conduzir: usa o carro da equipa
+        me = by_name or by_ctrl
+        if me is None:
+            return None
+        me.is_player = True
     assign_class_places(vehicles)
     session = Session(
         track=_s(si.mTrackName), kind=session_kind(int(si.mSession)), raw=int(si.mSession),
@@ -160,8 +169,6 @@ def parse(d: L.LMUObjectOut, cached=None, need_positions: bool = True, need_tyre
     `cached` = resultado anterior de parse_scoring (reutilizado se o scoring não mudou).
     """
     tb = d.telemetry
-    if not tb.playerHasVehicle:
-        return None
     sc = cached if cached is not None else parse_scoring(d)
     if sc is None:
         return None
@@ -188,7 +195,10 @@ def parse(d: L.LMUObjectOut, cached=None, need_positions: bool = True, need_tyre
         v.fwd = _fwd(t.mOri)
         v.speed = _fin(_speed(t.mLocalVel))
     if player_tel is None:
-        raise Skip("telemetria do jogador não encontrada")
+        # sem telemetria do teu carro (estás na garagem e outro piloto conduz): o resto continua a funcionar
+        from .model import Player
+        player = Player(id=me.id, vehicle_model=me.vehicle_name, speed=me.speed)
+        return Snapshot(session=session, vehicles=vehicles, me=me, player=player, source="lmu")
     player = parse_player(player_tel)
     if not player.vehicle_model:
         player.vehicle_model = me.vehicle_name

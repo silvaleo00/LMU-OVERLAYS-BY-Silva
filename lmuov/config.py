@@ -17,7 +17,7 @@ CONFIG_VERSION = 2
 # radar) acompanham o ecrã; os de texto (tempos que só mudam ~5x/s) redesenham-se menos vezes,
 # desfasados entre si para o trabalho não cair todo no mesmo frame.
 DEFAULT_FPS = {"delta": 20, "advanced": 20, "blind_spot": 20, "inputs": 15, "pitbox": 10, "team_radio": 10,
-               "track_map": 5, "battle": 5, "relative": 5, "track_limits": 5, "flags": 4, "digital_flag": 4,
+               "track_map": 5, "battle": 5, "relative": 5, "track_limits": 5, "flags": 10, "digital_flag": 10,
                "tower": 2, "standings": 2, "tyres": 2, "damage": 2, "engine_temps": 1, "fuel": 1, "wind": 1,
                "lap_counter": 1, "weather": 1}
 _OLD_FPS = [
@@ -38,6 +38,7 @@ HZ_CHOICES = tuple(PERF_MODES.values())
 
 GLOBAL_DEFAULTS = {
     "sim": "lmu",                     # simulador: lmu, iracing
+    "show_in_garage": True,           # overlays também na garagem/monitor (endurance)
     "update_repo": "",                # "utilizador/repositório" no GitHub (vazio = o que vem na app)
     "language": "en",                 # en, pt, es, fr, de, it
     "perf": "balanced",               # light (10 fps), balanced (20), smooth (40)
@@ -114,6 +115,9 @@ def load(path: Path, screen_w: int = 1920, screen_h: int = 1080) -> dict:
                 for k, o in ovs.items():
                     if isinstance(o, dict) and any(o.get("fps") == old.get(k) for old in _OLD_FPS):
                         o["fps"] = DEFAULT_FPS.get(k, o["fps"])
+            for k in ("flags", "digital_flag"):            # bandeiras ao mesmo tempo que as do jogo
+                if isinstance(ovs.get(k), dict) and ovs[k].get("fps") == 4:
+                    ovs[k]["fps"] = 10
             tw = ovs.get("tower", {})
             if tw.get("fields") == ["interval", "gap", "last"]:
                 tw["fields"] = list(base["overlays"]["tower"]["fields"])   # ecrãs novos (piloto, equipa, top 8)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import bisect
 import json
 import math
+import statistics
 import re
 import time
 from dataclasses import dataclass, field
@@ -350,7 +351,11 @@ class TrackMapRecorder:
         self.lap_ok = False
 
     def progress(self, L: float) -> float:
-        if self.map or not self.buf or not self.lap_ok:
+        if self.map:
+            return 0.0
+        if getattr(self, "bins", None):
+            return self.progress_all(L)
+        if not self.buf or not self.lap_ok:
             return 0.0
         return max(0.0, min(1.0, self.buf[-1][0] / L))
 
@@ -399,9 +404,76 @@ class TrackMapRecorder:
             self.key = key
             self._load()
             self.reset_lap()
+            self.bins: dict[int, list] = {}
+            self.s2: list[float] = []
+            self.s3: list[float] = []
+            self._vsec: dict[int, int] = {}
+            self._sec_saved = bool(self.map and len(self.map.sectors) >= 2)
+        L = s.track_length
+        if L <= 0:
+            return
+        self._sectors(snap, L)
         if self.map is not None:
             return
-        L = s.track_length
+        if snap.world_pos:
+            self._from_all_cars(snap, L)
+        else:
+            self._from_my_lap(snap, L)
+
+    # ---- setores: onde cada carro muda de S1->S2 e S2->S3 (mediana de várias passagens) ---- #
+    def _sectors(self, snap, L) -> None:
+        for v in snap.vehicles:
+            prev = self._vsec.get(v.id)
+            if prev is not None and v.sector != prev and not v.in_pits and v.lap_dist > 0:
+                if prev == 0 and v.sector == 1:
+                    self.s2.append(v.lap_dist)
+                elif prev == 1 and v.sector == 2:
+                    self.s3.append(v.lap_dist)
+            self._vsec[v.id] = v.sector
+        del self.s2[:-31], self.s3[:-31]
+        if self.map is not None and self.s2 and self.s3:
+            sec = [statistics.median(self.s2), statistics.median(self.s3)]
+            if sec[0] < sec[1] and (not self.map.sectors or len(self.map.sectors) < 2
+                                    or max(abs(x - y) for x, y in zip(sec, self.map.sectors)) > 15):
+                self.map.sectors = sec
+            if not self._sec_saved and len(self.s2) >= 3 and len(self.s3) >= 3:
+                self._sec_saved = True
+                self._save()
+
+    # ---- LMU: posições de todos os carros (ficam em segundos com o grid em pista) ---------- #
+    def _from_all_cars(self, snap, L) -> None:
+        step = self.STEP
+        for v in snap.vehicles:
+            if v.in_pits or v.in_garage or v.speed < 8 or not (0 < v.lap_dist < L):
+                continue
+            x, _, z = snap.player.pos if v.is_player and any(snap.player.pos) else v.pos
+            if x == 0 and z == 0:
+                continue
+            b = self.bins.setdefault(int(v.lap_dist / step), [0.0, 0.0, 0])
+            if b[2] < 6:                       # chega uma média de poucas passagens
+                b[0] += x
+                b[1] += z
+                b[2] += 1
+        n = int(math.ceil(L / step))
+        if len(self.bins) < 0.96 * n:
+            return
+        idx = sorted(self.bins)
+        holes = max([b - a for a, b in zip(idx, idx[1:])] + [idx[0] + n - idx[-1]])
+        if holes * step > 60:
+            return
+        pts = [((i + 0.5) * step, self.bins[i][0] / self.bins[i][2], self.bins[i][1] / self.bins[i][2]) for i in idx]
+        sec = [statistics.median(self.s2), statistics.median(self.s3)] if self.s2 and self.s3 else []
+        self.map = TrackMap(L, pts, sec)
+        self._save()
+
+    def progress_all(self, L: float) -> float:
+        if self.map or L <= 0 or not getattr(self, "bins", None):
+            return 0.0
+        return min(1.0, len(self.bins) / (L / self.STEP) / 0.96)
+
+    # ---- iRacing (sem posições dos outros): a tua própria volta ------------------------------ #
+    def _from_my_lap(self, snap, L) -> None:
+        me = snap.me
         if self.prev_laps is None:
             self.prev_laps = me.total_laps
             return
@@ -411,7 +483,9 @@ class TrackMapRecorder:
                 gaps = [b[0] - a[0] for a, b in zip(self.buf, self.buf[1:])]
                 ok = max(gaps) < 150
             if ok:
-                self.map = TrackMap(L, self._closed(self.buf, L), sorted(self.sec)[:2])
+                bounds = getattr(snap.session, "sector_bounds", ())
+                sec = [bounds[0] * L, bounds[1] * L] if len(bounds) == 2 else sorted(self.sec)[:2]
+                self.map = TrackMap(L, self._closed(self.buf, L), sec)
                 self._save()
                 return
             self.buf, self.sec = [], []
