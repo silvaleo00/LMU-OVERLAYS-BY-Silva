@@ -5,5 +5,5 @@ publicas uma versão. UPDATE_REPO é o teu repositório no GitHub ("utilizador/r
 que tem de ser público para os teus amigos poderem descarregar as atualizações.
 """
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 UPDATE_REPO = ""          # ex.: "fsleo/lmu-overlays"

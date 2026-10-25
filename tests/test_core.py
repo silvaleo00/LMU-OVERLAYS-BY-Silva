@@ -905,6 +905,27 @@ def test_map_from_all_cars_and_yellow():
     assert any(f.kind == "yellow" for f in active_flags(s, None))         # o jogo mostra-te a amarela
     print(f"mapa com todos os carros em {t:.0f} s; amarelas ok")
 
+
+def test_health_and_repairs():
+    """Saúde do carro (%) e tempo de reparação (estimativa do LMU / obrigatória+opcional do iRacing)."""
+    from lmuov.model import Player
+    from lmuov.overlays.damage import vehicle_health, repair_time
+    from lmuov.lmu_rest import parse_pit_estimate
+    p = Player()
+    assert vehicle_health(p) is None and repair_time(p) == -1           # sem dados
+    p.dents, p.aero_damage, p.susp_damage = (0,) * 8, 0.0, (0.0,) * 4
+    assert vehicle_health(p) == 100.0
+    p.aero_damage, p.susp_damage = 0.4, (0.6, 0.0, 0.0, 0.0)
+    h = vehicle_health(p)
+    assert 70 < h < 85, h
+    p.repair_est = 34.0
+    assert repair_time(p) == 34.0
+    q = Player(repair_req=30.0, repair_opt=20.0)                        # iRacing
+    assert repair_time(q) == 50.0 and 60 < vehicle_health(q) < 80
+    assert parse_pit_estimate({"total": 58.2, "damage": 34.1}) == {"total": 58.2, "repair": 34.1}
+    assert parse_pit_estimate(None) == {"total": -1.0, "repair": -1.0}
+    print(f"saúde {h:.0f}% e reparações ok")
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

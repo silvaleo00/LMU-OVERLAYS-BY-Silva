@@ -122,6 +122,8 @@ class Player:
     impact_et: float = 0.0        # tempo de jogo do último toque
     impact_mag: float = 0.0
     repair_req: float = -1.0      # segundos de reparação obrigatória (iRacing), -1 = não se sabe
+    repair_est: float = -1.0      # LMU: tempo de reparação estimado pelo próprio jogo (s), -1 = não se sabe
+    pit_est: float = -1.0         # LMU: tempo total da paragem estimado pelo jogo (s), com combustível/pneus
     repair_opt: float = -1.0
     warnings: int = 0             # 1 água quente, 2 óleo quente, 4 pressão do óleo, 8 pressão gasolina, 16 motor parado
     boost_temp: float = -1.0      # motor elétrico do híbrido (°C), -1 = não tem

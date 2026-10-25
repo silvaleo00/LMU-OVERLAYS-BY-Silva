@@ -18,7 +18,7 @@ CONFIG_VERSION = 2
 # desfasados entre si para o trabalho não cair todo no mesmo frame.
 DEFAULT_FPS = {"delta": 20, "advanced": 20, "blind_spot": 20, "inputs": 15, "pitbox": 10, "team_radio": 10,
                "track_map": 5, "battle": 5, "relative": 5, "track_limits": 5, "flags": 10, "digital_flag": 10,
-               "tower": 2, "standings": 2, "tyres": 2, "damage": 2, "engine_temps": 1, "fuel": 1, "wind": 1,
+               "tower": 2, "standings": 2, "tyres": 2, "damage": 2, "repairs": 2, "engine_temps": 1, "fuel": 1, "wind": 1,
                "lap_counter": 1, "weather": 1}
 _OLD_FPS = [
     {"delta": 30, "inputs": 20, "advanced": 20, "blind_spot": 20, "track_map": 10, "pitbox": 10, "flags": 8,

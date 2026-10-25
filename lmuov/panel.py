@@ -22,7 +22,7 @@ from .i18n import LANGS, tr
 
 CATEGORIES = (
     ("cat.race", ("tower", "relative", "battle", "standings", "track_map", "lap_counter", "team_radio")),
-    ("cat.car", ("delta", "fuel", "advanced", "inputs", "tyres", "damage", "engine_temps")),
+    ("cat.car", ("delta", "fuel", "advanced", "inputs", "tyres", "damage", "repairs", "engine_temps")),
     ("cat.alerts", ("flags", "digital_flag", "blind_spot", "pitbox", "track_limits")),
     ("cat.weather", ("weather", "wind")),
 )

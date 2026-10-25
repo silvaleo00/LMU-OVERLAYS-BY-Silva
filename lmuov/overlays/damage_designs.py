@@ -78,8 +78,10 @@ def engine_state(p) -> tuple[str, tuple]:
 
 
 def status(p) -> tuple[str, tuple]:
+    from .damage import health_suffix
     lvl = damage_level(p)
-    return ((tr("dmg.ok"), T.GOOD), (tr("dmg.light"), T.WARN), (tr("dmg.heavy"), T.BAD))[lvl]
+    txt, col = ((tr("dmg.ok"), T.GOOD), (tr("dmg.light"), T.WARN), (tr("dmg.heavy"), T.BAD))[lvl]
+    return txt + health_suffix(p), col
 
 
 def last_hit(p, ctx) -> str:

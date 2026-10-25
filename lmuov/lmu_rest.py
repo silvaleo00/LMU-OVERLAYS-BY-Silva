@@ -269,3 +269,36 @@ class StandingsFetcher(WeatherFetcher):
         """Campos que a API devolve por carro (vai para o diagnóstico, para afinar os ratings)."""
         cars = _cars(self.data)
         return sorted(cars[0].keys()) if cars else []
+
+
+# ---- estimativa da paragem (tempo de reparação) ------------------------------------------- #
+PIT_URL = "http://localhost:6397/rest/strategy/pitstop-estimate"
+
+
+def parse_pit_estimate(data) -> dict:
+    """{"total": s, "damage": s, ...} do jogo -> {"total": s, "repair": s}. Valores em falta = -1."""
+    out = {"total": -1.0, "repair": -1.0}
+    if not isinstance(data, dict):
+        return out
+    for key, name in (("total", "total"), ("damage", "repair")):
+        v = data.get(key)
+        if isinstance(v, dict):
+            v = v.get("value", v.get("time"))
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v >= 0:
+            out[name] = float(v)
+    return out
+
+
+class PitEstimateFetcher(WeatherFetcher):
+    """Tempo de reparação e da paragem que o próprio LMU estima (o mesmo do menu das boxes), a cada 1 s."""
+    label = "estimativa da paragem"
+    retry = 10.0
+
+    def __init__(self) -> None:
+        super().__init__(PIT_URL, every=1.0)
+
+    def estimate(self) -> dict:
+        try:
+            return parse_pit_estimate(self.data)
+        except Exception:
+            return {"total": -1.0, "repair": -1.0}

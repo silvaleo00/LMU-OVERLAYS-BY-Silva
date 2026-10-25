@@ -35,6 +35,71 @@ def frac_col(f: float) -> tuple:
     return mix(WARN_COL, BAD_COL, (f - 0.5) / 0.5)
 
 
+HEALTH_PARTS = (("aero", 0.25), ("susp", 0.35), ("body", 0.20), ("wheels", 0.10), ("engine", 0.10))
+
+
+def health_parts(p) -> dict:
+    """Dano de cada sistema (0 = perfeito, 1 = destruído). Só entram os que o jogo dá."""
+    out = {}
+    if p.aero_damage >= 0 or p.aero_detached:
+        out["aero"] = 1.0 if p.aero_detached else min(1.0, p.aero_damage)
+    sd = [x for x in p.susp_damage if x >= 0]
+    if sd:                                   # um canto partido conta muito: metade pior, metade média
+        out["susp"] = min(1.0, 0.5 * max(sd) + 0.5 * sum(sd) / len(sd))
+    if p.dents:
+        out["body"] = min(1.0, sum(min(2, d) for d in p.dents) / (2.0 * len(p.dents)))
+    tyres = p.tyres[:4]
+    if tyres:
+        out["wheels"] = min(1.0, sum(1.0 if t.detached else 0.6 if t.flat else 0.0 for t in tyres) / 2.0)
+    eng = 0.0
+    if p.warnings & 16:
+        eng = 1.0
+    elif p.warnings & (4 | 8):
+        eng = 0.6
+    elif p.warnings & (1 | 2) or p.overheating:
+        eng = 0.3
+    out["engine"] = eng
+    return out
+
+
+def vehicle_health(p) -> float | None:
+    """Saúde do carro em % (100 = perfeito). None = o jogo não dá dados de dano.
+    LMU: média ponderada das peças. iRacing (sem dano por peça): pelo tempo de reparação obrigatória."""
+    parts = health_parts(p)
+    if not (p.dents or p.aero_damage >= 0 or any(x >= 0 for x in p.susp_damage)):
+        if p.repair_req >= 0 or p.repair_opt >= 0:      # iRacing: 2 minutos de reparação = carro "a 0"
+            return max(0.0, 100.0 - (max(0.0, p.repair_req) + 0.3 * max(0.0, p.repair_opt)) / 120.0 * 100.0)
+        return None
+    total_w = sum(w for k, w in HEALTH_PARTS if k in parts)
+    dmg = sum(parts[k] * w for k, w in HEALTH_PARTS if k in parts) / max(total_w, 1e-9)
+    return max(0.0, min(100.0, 100.0 * (1.0 - dmg)))
+
+
+def repair_time(p) -> float:
+    """Segundos de reparação: a estimativa do LMU, ou obrigatória + opcional do iRacing. -1 = não se sabe."""
+    if p.repair_est >= 0:
+        return p.repair_est
+    if p.repair_req >= 0 or p.repair_opt >= 0:
+        return max(0.0, p.repair_req) + max(0.0, p.repair_opt)
+    return -1.0
+
+
+def health_color(h: float):
+    return OK_COL if h >= 90 else (WARN_COL if h >= 60 else BAD_COL)
+
+
+def health_suffix(p) -> str:
+    """" · 87% · 34 s" para o cabeçalho dos designs do dano."""
+    out = ""
+    h = vehicle_health(p)
+    if h is not None:
+        out += f" · {h:.0f}%"
+    rt = repair_time(p)
+    if rt > 0:
+        out += f" · {tr('rep.short')} {rt:.0f} s"
+    return out
+
+
 def damage_level(p) -> int:
     """0 nada, 1 ligeiro, 2 grave."""
     lvl = max(p.dents) if p.dents else 0
@@ -84,6 +149,7 @@ class DamageOverlay(Overlay):
             return
         lvl = damage_level(p)
         head = (tr("dmg.ok"), T.GOOD) if lvl == 0 else ((tr("dmg.light"), T.WARN) if lvl == 1 else (tr("dmg.heavy"), T.BAD))
+        head = (head[0] + health_suffix(p), head[1])
         y = T.panel(c, w, h, self.title, head[0], part="bg")
         c.mark_static()
         T.panel(c, w, h, self.title, head[0], part="right")

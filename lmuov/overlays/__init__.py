@@ -11,6 +11,7 @@ from .inputs import InputsOverlay
 from .lap_counter import LapCounterOverlay
 from .pitbox import PitboxOverlay
 from .relative import RelativeOverlay
+from .repairs import RepairsOverlay
 from .standings import StandingsOverlay
 from .team_radio import TeamRadioOverlay
 from .tower import TowerOverlay
@@ -23,6 +24,6 @@ from .wind import WindOverlay
 # Ordem do painel: os ligados por defeito primeiro, os extras (desligados) no fim
 ALL = [BlindSpotOverlay, DeltaOverlay, FuelOverlay, RelativeOverlay, TowerOverlay, BattleOverlay, FlagsOverlay,
        PitboxOverlay, TeamRadioOverlay, TrackMapOverlay, InputsOverlay, DigitalFlagOverlay, AdvancedOverlay,
-       TrackLimitsOverlay, DamageOverlay, WeatherOverlay, LapCounterOverlay, EngineTempsOverlay,
+       TrackLimitsOverlay, DamageOverlay, RepairsOverlay, WeatherOverlay, LapCounterOverlay, EngineTempsOverlay,
        StandingsOverlay, TyresOverlay, WindOverlay]
 BY_KEY = {cls.key: cls for cls in ALL}

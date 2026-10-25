@@ -229,6 +229,7 @@ class LMUSource:
         self.weather = None             # previsão pela API local do jogo (arranca quando há sessão)
         self.repair = None              # danos da API local (suspensão, aero, travões)
         self.standings = None           # ratings (SR/DR) pela API local
+        self.pitest = None              # tempo de reparação estimado pelo jogo
 
     def _open(self) -> bool:
         if sys.platform != "win32":
@@ -260,7 +261,8 @@ class LMUSource:
         if st is not None:
             out["api_ratings_campos"] = st.keys()
             out["ratings_encontrados"] = len(st.ratings())
-        for name, f in (("api_meteorologia", self.weather), ("api_danos", self.repair), ("api_ratings", st)):
+        for name, f in (("api_meteorologia", self.weather), ("api_danos", self.repair), ("api_ratings", st),
+                        ("api_reparacao", self.pitest)):
             out[name] = f.status() if f is not None else "não iniciada"
         return out
 
@@ -297,6 +299,13 @@ class LMUSource:
             if rt:
                 for v in snap.vehicles:
                     v.sr, v.dr, v.country = rt.get(v.driver.strip(), ("", "", ""))
+            if self.pitest is None and sys.platform == "win32":
+                from .lmu_rest import PitEstimateFetcher
+                self.pitest = PitEstimateFetcher()
+                self.pitest.start()
+            if self.pitest is not None:
+                est = self.pitest.estimate()
+                snap.player.repair_est, snap.player.pit_est = est["repair"], est["total"]
             wr = self.repair.wearables() if self.repair is not None else None
             if wr:
                 p = snap.player
