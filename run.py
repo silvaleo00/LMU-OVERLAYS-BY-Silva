@@ -14,6 +14,8 @@ import logging
 import sys
 from pathlib import Path
 
+if "__compiled__" in globals():          # compilado para código nativo (Nuitka): conta como .exe
+    sys.frozen = True
 if not getattr(sys, "frozen", False):
     sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -42,11 +44,40 @@ def _already_running() -> bool:
     return False
 
 
+def _selftest(out: str) -> int:
+    """Confirma que o .exe compilado tem tudo: módulos, overlays, fontes e ícone. Não abre janelas."""
+    lines, ok = [], True
+    try:
+        import importlib
+        for m in ("lmuov.qt_app", "lmuov.panel", "lmuov.source_lmu", "lmuov.source_iracing", "lmuov.source_demo",
+                  "lmuov.lmu_rest", "lmuov.updater", "lmuov.overlays.damage_designs", "lmuov.overlays.compact",
+                  "pyLMUSharedMemory.lmu_data", "PySide6.QtWidgets"):
+            importlib.import_module(m)
+        from lmuov.overlays import ALL
+        from lmuov.paths import resource
+        lines.append(f"overlays {len(ALL)}")
+        for rel in ("assets/icon.ico", "assets/fonts"):
+            if not resource(rel).exists():
+                ok = False
+                lines.append(f"falta {rel}")
+        lines.append(f"frozen {getattr(sys, 'frozen', False)}")
+    except Exception as exc:  # pragma: no cover
+        import traceback
+        ok = False
+        lines.append(traceback.format_exc())
+    lines.append("SELFTEST OK" if ok else "SELFTEST FALHOU")
+    Path(out).write_text("\n".join(lines), encoding="utf-8")
+    return 0 if ok else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Overlays para o Le Mans Ultimate")
     ap.add_argument("--demo", action="store_true", help="usar dados simulados")
     ap.add_argument("--preview", action="store_true", help="gerar PNGs em ./previews (precisa de Pillow)")
+    ap.add_argument("--selftest", metavar="FICHEIRO", help="verifica o .exe (usado na compilação) e sai")
     args = ap.parse_args()
+    if args.selftest:
+        return _selftest(args.selftest)
 
     root = app_dir()
     logging.basicConfig(filename=root / "lmu_overlays.log", level=logging.INFO,

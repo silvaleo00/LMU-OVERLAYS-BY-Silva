@@ -1,18 +1,17 @@
 name: build-windows-exe
 
-# Compila o .exe num PC Windows do GitHub e publica a versão.
-#  - Quando o lmuov/version.py muda no main (o publicar_versao.bat faz isso) e essa versão ainda não
-#    foi publicada: testa, compila e cria a Release "vX.Y.Z" com o LMU_Overlays_Windows.zip.
-#    As apps dos teus amigos veem a versão nova e mostram o botão "Atualizar".
-#  - Também publica ao enviar uma tag "v1.2.3" (forma antiga).
-#  - Manualmente (Actions > build-windows-exe > Run workflow): compila e publica a versão do
-#    version.py se ainda não existir; se já existir, o zip fica só em Artifacts.
+# Compila a app para CÓDIGO NATIVO (Nuitka) num PC Windows do GitHub e publica a versão.
+#  - O .exe não leva o código Python: os módulos da app são traduzidos para C e compilados.
+#  - Publica quando o lmuov/version.py muda no main e essa versão ainda não existe.
+#  - Onde publica: se existirem os segredos RELEASES_REPO ("utilizador/repo-publico") e
+#    RELEASES_TOKEN, publica nesse repositório PÚBLICO só de versões (o código pode então ficar
+#    num repositório PRIVADO). Sem eles, publica neste mesmo repositório.
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["lmuov/version.py"]
+    paths: ["lmuov/version.py", ".github/workflows/build-windows-exe.yml"]
     tags: ["v*"]
 
 permissions:
@@ -21,6 +20,9 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      RELEASES_REPO: ${{ secrets.RELEASES_REPO }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,32 +31,57 @@ jobs:
         with:
           python-version: "3.12"
       - name: Instalar dependências
-        run: python -m pip install --upgrade pip pyside6-essentials pyinstaller
-      - name: Versão
+        run: python -m pip install --upgrade pip pyside6-essentials nuitka ordered-set zstandard
+      - name: Versão e destino
         id: ver
         shell: pwsh
         run: |
           $f = "lmuov/version.py"
+          $target = if ($env:RELEASES_REPO) { $env:RELEASES_REPO } else { "${{ github.repository }}" }
           if ("${{ github.ref }}".StartsWith("refs/tags/v")) {
             $v = "${{ github.ref_name }}".TrimStart("v")
-            $publish = "true"
           } else {
             $line = Get-Content $f | Where-Object { $_ -match '^VERSION = ' } | Select-Object -First 1
             $v = ($line -replace '^VERSION = ', '').Trim().Trim('"')
-            git fetch --tags --quiet
-            $exists = git tag --list "v$v"
-            $publish = if ($exists) { "false" } else { "true" }
           }
-          $repo = "${{ github.repository }}"
-          (Get-Content $f) -replace '^VERSION = .*', "VERSION = `"$v`"" -replace '^UPDATE_REPO = .*', "UPDATE_REPO = `"$repo`"" | Set-Content $f -Encoding utf8
+          $publish = "true"
+          $code = 0
+          try {
+            $r = Invoke-WebRequest -UseBasicParsing -Uri "https://api.github.com/repos/$target/releases/tags/v$v" -ErrorAction Stop
+            $publish = "false"
+          } catch { }
+          (Get-Content $f) -replace '^VERSION = .*', "VERSION = `"$v`"" -replace '^UPDATE_REPO = .*', "UPDATE_REPO = `"$target`"" | Set-Content $f -Encoding utf8
           Get-Content $f
           "version=$v" >> $env:GITHUB_OUTPUT
           "publish=$publish" >> $env:GITHUB_OUTPUT
-          Write-Host "Versão $v · publicar: $publish"
+          "target=$target" >> $env:GITHUB_OUTPUT
+          Write-Host "Versão $v · publicar em $target : $publish"
       - name: Testes
         run: python tests/test_core.py
-      - name: Gerar .exe
-        run: python -m PyInstaller --noconfirm --clean lmu_overlays.spec
+      - name: Compilar para código nativo (Nuitka)
+        shell: pwsh
+        run: |
+          python -m nuitka run.py --standalone --assume-yes-for-downloads `
+            --enable-plugin=pyside6 --windows-console-mode=disable `
+            --windows-icon-from-ico=assets/icon.ico `
+            --include-data-dir=assets=assets `
+            --include-data-files=pyLMUSharedMemory/License.txt=pyLMUSharedMemory/License.txt `
+            --include-package=lmuov --include-package=pyLMUSharedMemory `
+            --nofollow-import-to=lmuov.preview --nofollow-import-to=PIL --nofollow-import-to=numpy `
+            --nofollow-import-to=tkinter --nofollow-import-to=tests `
+            --output-dir=build --output-filename="LMU Overlays.exe" `
+            --company-name="Silva" --product-name="LMU Overlays" `
+            --file-version=${{ steps.ver.outputs.version }}.0 --product-version=${{ steps.ver.outputs.version }}.0 `
+            2>&1 | Tee-Object -FilePath build-log.txt
+          if ($LASTEXITCODE -ne 0) { throw "nuitka falhou" }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Move-Item "build/run.dist" "dist/LMU Overlays"
+      - name: Verificar o .exe (self-test)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist/LMU Overlays/LMU Overlays.exe" -ArgumentList "--selftest", "$PWD/selftest.txt" -Wait -PassThru
+          Get-Content selftest.txt
+          if (-not (Select-String -Path selftest.txt -Pattern "SELFTEST OK" -Quiet)) { throw "self-test falhou" }
       - name: Juntar LEIA-ME e criar o zip
         shell: pwsh
         run: |
@@ -64,12 +91,33 @@ jobs:
         with:
           name: LMU_Overlays_Windows
           path: dist/LMU_Overlays_Windows.zip
-      - name: Publicar a versão (Release)
-        if: steps.ver.outputs.publish == 'true'
+      - name: Publicar a versão (este repositório)
+        if: steps.ver.outputs.publish == 'true' && env.RELEASES_REPO == ''
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
           name: v${{ steps.ver.outputs.version }}
           target_commitish: ${{ github.sha }}
           files: dist/LMU_Overlays_Windows.zip
-          generate_release_notes: true
+      - name: Publicar a versão (repositório público de versões)
+        if: steps.ver.outputs.publish == 'true' && env.RELEASES_REPO != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ secrets.RELEASES_REPO }}
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          files: dist/LMU_Overlays_Windows.zip
+      - name: Guardar o registo se falhar
+        if: failure()
+        shell: pwsh
+        run: |
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git checkout --orphan ci-logs
+          git rm -rf --cached . | Out-Null
+          $txt = @()
+          foreach ($f in @("build-log.txt", "selftest.txt")) { if (Test-Path $f) { $txt += "==== $f"; $txt += Get-Content $f -Tail 300 } }
+          $txt | Set-Content ci-log.txt -Encoding utf8
+          git add ci-log.txt
+          git commit -m "log ${{ github.run_id }}"
+          git push -f origin ci-logs
