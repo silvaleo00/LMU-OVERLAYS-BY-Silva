@@ -825,8 +825,9 @@ def test_ratings_avg_tyres():
     assert tv.rating_color("") is None and tv.rating_color("2.4k") == tv.RATING_NEUTRAL
     r = parse_ratings([{"driverName": "Ana Silva", "safetyRating": "Silver", "driverRating": {"name": "Gold"},
                         "countryCode": "prt"}, {"driverName": "Sem Dados", "bestLapTime": 100}])
-    assert r == {"Ana Silva": ("SLV", "GLD", "PRT")}, r
-    assert parse_ratings({"standings": [{"driverName": "X", "DR": 1530}]}) == {"X": ("", "1.5k", "")}
+    assert r == {"Ana Silva": ("SLV", "GLD", "PRT", -1.0)}, r
+    assert parse_ratings({"standings": [{"driverName": "X", "DR": 1530}]}) == {"X": ("", "1.5k", "", -1.0)}
+    assert parse_ratings([{"driverName": "Y", "driverRating": "Silver 3", "ratingProgress": 50}]) == {"Y": ("", "S3", "", 0.5)}
     assert fmt_rating(None) == "" and fmt_rating(3.456) == "3.46"
     # média de 5 voltas: ignora a volta com boxes e guarda só as últimas 5
     from lmuov.trackers import LapAvgTracker

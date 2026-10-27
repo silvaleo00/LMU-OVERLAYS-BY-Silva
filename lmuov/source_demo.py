@@ -251,7 +251,9 @@ class DemoSource:
                 is_player=c is self.player, speed=c.speed, time_into_lap=c.tau, est_lap=c.base,
                 sector=min(2, int(c.p * 3)), pos=pos, fwd=fwd, pit_lap_dist=self.pit_box,
                 fuel_frac=max(0.04, 1.0 - ((c.laps + c.p + c.id * 0.7) % 14) / 14.0),
-                sr=("BRZ", "SLV", "GLD", "PLT")[(c.id * 7) % 4], dr=("BRZ", "SLV", "GLD", "PLT")[(c.id * 3 + 1) % 4],
+                sr=("BRZ", "SLV", "GLD", "PLT")[(c.id * 7) % 4],
+                dr=("B3", "S1", "S2", "S3", "S2", "G1", "S3", "P1")[(c.id * 3 + 1) % 8],
+                dr_pct=((c.id * 37) % 10) / 10.0, dr_delta=(((c.id * 53) % 21) - 8) / 100.0 * 4,
                 country=("PRT", "FRA", "GBR", "ITA", "DEU", "ESP", "NLD", "BRA")[(c.id * 5) % 8],
                 tyre=("M", "M", "H", "S")[c.id % 4],
             ))

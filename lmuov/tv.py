@@ -384,3 +384,63 @@ def rating_chip(c, x, y, w, h, txt: str, dim: bool = False) -> None:
         col = alpha(col, 110)
     c.rect(x, y, w, h, col, radius=3)
     c.text(x, y, w, h, txt, 10, T.on_color(col), "c", 800)
+
+
+
+# ---- caixa do Driver Rating como no LMU: [S3] 50% +18% ---------------------------------------- #
+DR_TIER = {"B": (205, 128, 60, 255), "S": (214, 218, 224, 255), "G": (255, 196, 0, 255),
+           "P": (120, 220, 232, 255), "D": (170, 140, 255, 255)}
+DR_BOX = (150, 154, 162, 235)
+_TIER_SHORT = {"BRZ": "B", "SLV": "S", "GLD": "G", "PLT": "P", "DIA": "D"}
+
+
+def dr_parts(dr: str) -> tuple[str, str]:
+    """"S3" -> ("S", "3"); "GLD" -> ("G", ""); outros -> ("", texto)."""
+    if not dr:
+        return "", ""
+    if dr in _TIER_SHORT:
+        return _TIER_SHORT[dr], ""
+    if dr[:1] in DR_TIER and dr[1:].isdigit():
+        return dr[:1], dr[1:]
+    return "", dr
+
+
+def dr_box(c, x, y, w, h, dr: str, pct: float = -1.0, delta: float = 0.0, dim: bool = False) -> None:
+    tier, lvl = dr_parts(dr)
+    if not tier:
+        rating_chip(c, x, y, w, h, dr, dim)
+        return
+    tcol = DR_TIER[tier]
+    box = alpha(DR_BOX, 120) if dim else DR_BOX
+    c.rect(x, y, w, h, box, radius=3)
+    cw = h + 6                                        # pastilha do nível: "S3"
+    c.rect(x, y, cw, h, alpha(tcol, 130) if dim else tcol, radius=3)
+    c.text(x, y, cw, h, tier + lvl, 9.5, T.on_color(tcol), "c", 800)
+    ink = (20, 22, 28, 255)
+    rest = w - cw
+    if pct >= 0:
+        c.text(x + cw + 2, y, rest * 0.45, h, f"{pct * 100:.0f}%", 9.5, ink, "c", 800)
+    if delta:
+        dcol = (0, 120, 50, 255) if delta > 0 else (190, 20, 30, 255)
+        c.text(x + cw + rest * 0.45, y, rest * 0.55 - 2, h, f"{delta * 100:+.0f}%", 9.5, dcol, "c", 800)
+    elif pct < 0:
+        c.text(x + cw, y, rest, h, "", 9.5, ink, "c", 800)
+
+
+# ---- ícone do Safety Rating (losango colorido) ----------------------------------------------- #
+SR_ICON = {"PLT": (60, 220, 120, 255), "GLD": (60, 220, 120, 255), "SLV": (70, 140, 255, 255),
+           "BRZ": (255, 150, 40, 255)}
+
+
+def sr_icon(c, cx, cy, r, sr: str, dim: bool = False) -> bool:
+    col = SR_ICON.get(sr)
+    if col is None and len(sr) >= 2 and sr[1:].isdigit():            # "S2", "G1" ... (LMU)
+        col = SR_ICON.get({"P": "PLT", "G": "GLD", "S": "SLV", "B": "BRZ"}.get(sr[:1], ""))
+    if col is None:
+        return False
+    if dim:
+        col = alpha(col, 110)
+    c.polygon([(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)], col)
+    c.polygon([(cx, cy - r * 0.45), (cx + r * 0.45, cy), (cx, cy + r * 0.45), (cx - r * 0.45, cy)],
+              (255, 255, 255, 120))
+    return True

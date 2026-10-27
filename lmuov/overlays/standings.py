@@ -224,6 +224,10 @@ class StandingsOverlay(Overlay):
             sf = K.sof(cars_all)
             if sf > 0:
                 info += f"   {tr('cmp.sof')} {sf / 1000:.1f}k"
+            else:
+                dsof = K.dr_sof(cars_all)
+                if dsof:
+                    info += f"   {tr('cmp.sof')} {dsof}"
             c.text(58, y, 140, 17, info, 10, T.DIM, "l", 700)
             K.col_heads(c, cols, {k: v for k, v in X.items() if k not in ("pos", "name")}, y, 17)
             y += 20

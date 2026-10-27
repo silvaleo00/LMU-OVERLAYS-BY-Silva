@@ -15,9 +15,9 @@ from ..i18n import tr
 
 ORDER = ("pos", "number", "country", "name", "sr", "dr", "logo", "gap", "interval", "last", "best", "avg5",
          "tyre", "energy", "pits")
-WIDTH = {"pos": 24, "number": 30, "country": 30, "name": 138, "sr": 44, "dr": 44, "logo": 30, "gap": 54,
+WIDTH = {"pos": 24, "number": 30, "country": 30, "name": 138, "sr": 26, "dr": 96, "logo": 30, "gap": 54,
          "interval": 54, "last": 62, "best": 62, "avg5": 62, "tyre": 22, "energy": 42, "pits": 30}
-HEAD = {"pos": "", "number": "#", "country": "", "name": "", "sr": "SR", "dr": "DR", "logo": "",
+HEAD = {"pos": "", "number": "#", "country": "", "name": "", "sr": "", "dr": "DR", "logo": "",
         "gap": "col.gap", "interval": "col.int", "last": "col.last", "best": "col.best", "avg5": "col.avg5",
         "tyre": "", "energy": "col.nrg", "pits": "col.pits"}
 RELATIVE_COLS = ("pos", "number", "name", "sr", "dr", "logo", "last", "tyre", "energy", "pits", "gap")
@@ -90,6 +90,23 @@ def sof(vehicles) -> float:
     return br * math.log(len(irs) / sum(math.exp(-ir / br) for ir in irs))
 
 
+def dr_sof(vehicles) -> str:
+    """SOF em Driver Rating (como o LMU): média dos níveis da classe, ex. "S2 69%"."""
+    vals = []
+    for v in vehicles:
+        tier, lvl = tv.dr_parts(v.dr)
+        if tier in "BSGP" and tier:
+            t = "BSGP".index(tier)
+            vals.append(t * 3 + (int(lvl) - 1 if lvl else 0) + max(0.0, v.dr_pct))
+    if not vals:
+        return ""
+    m = sum(vals) / len(vals)
+    t = min(3, int(m // 3))
+    rest = m - t * 3
+    lvl = min(2, int(rest))
+    return f"{'BSGP'[t]}{lvl + 1} {(rest - lvl) * 100:.0f}%"
+
+
 def row(c, x, y, w, v, info, ctx, i=0):
     """Uma linha. info: gap, interval (texto), class_best, name_col, dim."""
     me = v.is_player
@@ -112,8 +129,11 @@ def row(c, x, y, w, v, info, ctx, i=0):
         elif k == "name":
             c.text(cx + 4, y, cw - 6, ROW - 1, T.driver_label(v.driver), 12.5, info.get("name_col", ink), "l",
                    800 if me else 700)
-        elif k in ("sr", "dr"):
-            tv.rating_chip(c, cx + 2, y + 3, cw - 5, ROW - 7, getattr(v, k), dim)
+        elif k == "sr":                                 # Safety Rating: losango colorido (ou texto)
+            if not tv.sr_icon(c, cx + cw / 2, y + ROW / 2 - 0.5, (ROW - 7) / 2, v.sr, dim):
+                tv.rating_chip(c, cx + 2, y + 3, cw - 5, ROW - 7, v.sr, dim)
+        elif k == "dr":                                 # Driver Rating: [S3] 50% +18%
+            tv.dr_box(c, cx + 2, y + 3, cw - 5, ROW - 7, v.dr, v.dr_pct, v.dr_delta, dim)
         elif k == "logo":
             code = tv.brand_code(v.vehicle_name or v.team)
             if not tv.logo_plate(c, cx + 2, y + 2, cw - 4, ROW - 5, code, dim):

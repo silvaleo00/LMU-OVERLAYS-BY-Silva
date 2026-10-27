@@ -215,7 +215,8 @@ def fmt_rating(v) -> str:
     low = s.lower()
     for k, short in TIERS.items():
         if k in low:
-            return short
+            digit = next((ch for ch in s if ch in "123"), "")
+            return (short[0] + digit) if digit else short      # "Silver 3" -> "S3"
     return s[:5].upper()
 
 
@@ -238,8 +239,12 @@ def parse_ratings(data) -> dict:
         if not isinstance(name, str) or not name:
             continue
         sr = dr = country = ""
+        pct = -1.0
         for k, v in car.items():
             low = k.lower().replace("_", "")
+            if ("progress" in low or "percent" in low) and isinstance(v, (int, float)) and not isinstance(v, bool):
+                pct = v / 100.0 if v > 1 else float(v)
+                continue
             if low in ("country", "countrycode", "nationality", "nation", "flag") and isinstance(v, str):
                 country = v.strip()[:3].upper()
             elif "safety" in low or low in ("sr", "safetyrating"):
@@ -247,7 +252,7 @@ def parse_ratings(data) -> dict:
             elif "rating" in low or low in ("dr", "driverrating"):
                 dr = dr or fmt_rating(v)
         if sr or dr or country:
-            out[name.strip()] = (sr, dr, country)
+            out[name.strip()] = (sr, dr, country, pct)
     return out
 
 

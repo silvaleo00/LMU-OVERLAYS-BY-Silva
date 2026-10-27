@@ -170,6 +170,8 @@ class Vehicle:
     sr: str = ""                  # safety rating já formatado (iRacing "A4.32"; LMU nível) — vazio = o jogo não dá
     dr: str = ""                  # driver rating (iRacing: iRating "2.4k"; LMU nível)
     irating: int = 0              # iRating em número (iRacing), para o SOF
+    dr_pct: float = -1.0          # LMU: progresso dentro do nível do DR (0..1), -1 = não se sabe
+    dr_delta: float = 0.0         # LMU: quanto o DR mudou (fração, ex. +0.18)
     country: str = ""             # código do país (quando o jogo dá)
     tyre: str = ""                # composto dos pneus: "S" macio, "M" médio, "H" duro, "W" chuva, "D" seco
 

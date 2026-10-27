@@ -298,7 +298,7 @@ class LMUSource:
             rt = self.standings.ratings() if self.standings is not None else {}
             if rt:
                 for v in snap.vehicles:
-                    v.sr, v.dr, v.country = rt.get(v.driver.strip(), ("", "", ""))
+                    v.sr, v.dr, v.country, v.dr_pct = rt.get(v.driver.strip(), ("", "", "", -1.0))
             if self.pitest is None and sys.platform == "win32":
                 from .lmu_rest import PitEstimateFetcher
                 self.pitest = PitEstimateFetcher()
