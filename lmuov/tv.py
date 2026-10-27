@@ -370,6 +370,8 @@ def rating_color(txt: str):
         return None
     if txt in TIER_COLORS:
         return TIER_COLORS[txt]
+    if len(txt) == 2 and txt[0] in "BSGP" and txt[1].isdigit():          # LMU: "S2", "G1"...
+        return TIER_COLORS[{"B": "BRZ", "S": "SLV", "G": "GLD", "P": "PLT"}[txt[0]]]
     if txt[:1] in LICENSE_COLORS and len(txt) > 1 and (txt[1:2].isdigit()):
         return LICENSE_COLORS[txt[:1]]
     return RATING_NEUTRAL

@@ -939,6 +939,8 @@ class OverlayApp:
         self.trackers.track_inputs = targets.get("inputs", False)
         if hasattr(self.source, "need_positions"):
             self.source.need_positions = targets.get("blind_spot", True) or targets.get("track_map", True)
+        if hasattr(self.source, "use_ratings"):
+            self.source.use_ratings = bool(self.cfg["global"].get("online_ratings", True))
         if hasattr(self.source, "need_tyres"):
             self.source.need_tyres = any(
                 targets.get(k, False) and "tyre" in (self.cfg["overlays"].get(k, {}).get("columns") or [])

@@ -245,7 +245,7 @@ def parse_ratings(data) -> dict:
             if ("progress" in low or "percent" in low) and isinstance(v, (int, float)) and not isinstance(v, bool):
                 pct = v / 100.0 if v > 1 else float(v)
                 continue
-            if low in ("country", "countrycode", "nationality", "nation", "flag") and isinstance(v, str):
+            if low in ("country", "countrycode", "nationality", "nation") and isinstance(v, str):
                 country = v.strip()[:3].upper()
             elif "safety" in low or low in ("sr", "safetyrating"):
                 sr = sr or fmt_rating(v)

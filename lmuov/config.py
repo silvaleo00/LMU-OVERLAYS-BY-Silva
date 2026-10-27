@@ -38,7 +38,8 @@ HZ_CHOICES = tuple(PERF_MODES.values())
 
 GLOBAL_DEFAULTS = {
     "sim": "lmu",                     # simulador: lmu, iracing
-    "show_in_garage": True,           # overlays também na garagem/monitor (endurance)
+    "show_in_garage": True,
+    "online_ratings": True,           # SR/DR do LMU pelo serviço de ratings do jogo (raceos.gg)           # overlays também na garagem/monitor (endurance)
     "update_repo": "",                # "utilizador/repositório" no GitHub (vazio = o que vem na app)
     "language": "en",                 # en, pt, es, fr, de, it
     "perf": "balanced",               # light (10 fps), balanced (20), smooth (40)

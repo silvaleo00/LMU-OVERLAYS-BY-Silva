@@ -927,6 +927,24 @@ def test_health_and_repairs():
     assert parse_pit_estimate(None) == {"total": -1.0, "repair": -1.0}
     print(f"saúde {h:.0f}% e reparações ok")
 
+
+def test_lmu_ratings_service():
+    """Ratings do LMU (serviço raceos.gg): nível, progresso, país; bilhete do Steam; variação."""
+    from lmuov.ratings_service import parse_players, parse_ticket, rating_value
+    rec = [{"id": "x", "name": "Herve Attard", "username": "Herve Attard",
+            "driverRank": {"elo": 0, "rank": "Bronze", "tier": 3, "progress": 70},
+            "safetyRank": {"rank": "Silver", "tier": 2, "progress": 20},
+            "profile": {"nationality": "us", "badge": "sr-saint"}},
+           {"username": "Pro Guy", "driverRank": {"rank": "Pro"}}, {"username": "Nada"}]
+    r = parse_players(rec)
+    assert r["Herve Attard"] == {"dr": "B3", "dr_pct": 0.7, "sr": "S2", "sr_pct": 0.2, "country": "US"}
+    assert r["Pro Guy"]["dr"] == "PRO" and "Nada" not in r
+    assert parse_players({"players": rec})["Herve Attard"]["dr"] == "B3"
+    assert parse_ticket('"abc123"') == "abc123" and parse_ticket('{"authSessionTicket": "ff"}') == "ff"
+    assert parse_ticket("") == "" and parse_ticket("<html>") == ""
+    assert abs(rating_value("S2", 0.5) - 4.5) < 1e-9 and rating_value("PRO", -1) is None
+    print("ratings do LMU ok")
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

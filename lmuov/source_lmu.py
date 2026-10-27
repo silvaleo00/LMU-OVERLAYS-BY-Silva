@@ -91,6 +91,7 @@ def parse_scoring(d: L.LMUObjectOut) -> tuple[Session, list[Vehicle], Vehicle] |
             fuel_frac=int(vs.mFuelFraction) / 255.0,
             pos=(_fin(vs.mPos.x), _fin(vs.mPos.y), _fin(vs.mPos.z)), fwd=_fwd(vs.mOri),
         )
+        v.ai = int(vs.mControl) == 1
         vehicles.append(v)
         if v.is_player:
             me = v
@@ -228,7 +229,11 @@ class LMUSource:
         self.status = ("waiting", "")
         self.weather = None             # previsão pela API local do jogo (arranca quando há sessão)
         self.repair = None              # danos da API local (suspensão, aero, travões)
-        self.standings = None           # ratings (SR/DR) pela API local
+        self.standings = None           # (já não é usado: a API local não tem ratings)
+        self.ratings = None             # SR/DR pelo serviço de ratings do LMU (ver ratings_service.py)
+        self.use_ratings = True
+        self._dr_start: dict = {}       # rating de cada piloto no início da corrida (para o +/-)
+        self._dr_key = None
         self.pitest = None              # tempo de reparação estimado pelo jogo
 
     def _open(self) -> bool:
@@ -250,6 +255,30 @@ class LMUSource:
         ctypes.memmove(ctypes.addressof(self._copy), ctypes.addressof(self._live), self._size)
         return self.read_from(self._copy)
 
+    def _apply_ratings(self, snap) -> None:
+        """SR/DR de cada piloto (treino, qualificação e corrida). Na corrida, também quanto o DR
+        mudou desde o início dela."""
+        from .ratings_service import rating_value
+        rs = self.ratings
+        rs.request(v.driver for v in snap.vehicles if not v.ai)
+        s = snap.session
+        key = (s.track, s.raw)
+        if key != self._dr_key:
+            self._dr_key, self._dr_start = key, {}
+        race = s.kind == "race"
+        for v in snap.vehicles:
+            r = rs.get(v.driver) if not v.ai else None
+            if not r:
+                continue
+            v.dr, v.dr_pct, v.sr, v.sr_pct = r["dr"], r["dr_pct"], r["sr"], r["sr_pct"]
+            v.country = v.country or r["country"]
+            val = rating_value(v.dr, v.dr_pct)
+            if race and val is not None:
+                start = self._dr_start.setdefault(v.driver, val)
+                v.dr_delta = val - start                 # em "níveis": 0.18 = +18% de um nível
+            else:
+                v.dr_delta = 0.0
+
     @property
     def diag(self) -> dict:
         out = {"estado": list(self.status)}
@@ -257,11 +286,10 @@ class LMUSource:
             out["carros"] = len(self._last.vehicles)
             out["sessao"] = self._last.session.kind
         out["vento"] = list(getattr(self, "wind_src", ("memória partilhada", 0, 0)))
-        st = self.standings
-        if st is not None:
-            out["api_ratings_campos"] = st.keys()
-            out["ratings_encontrados"] = len(st.ratings())
-        for name, f in (("api_meteorologia", self.weather), ("api_danos", self.repair), ("api_ratings", st),
+        if self.ratings is not None:
+            out["ratings"] = {"estado": self.ratings.status, "pilotos_com_rating": self.ratings.found,
+                              "pedidos": len(self.ratings.wanted)}
+        for name, f in (("api_meteorologia", self.weather), ("api_danos", self.repair),
                         ("api_reparacao", self.pitest)):
             out[name] = f.status() if f is not None else "não iniciada"
         return out
@@ -291,14 +319,13 @@ class LMUSource:
                 from .lmu_rest import RepairFetcher
                 self.repair = RepairFetcher()
                 self.repair.start()
-            if self.standings is None and sys.platform == "win32":
-                from .lmu_rest import StandingsFetcher
-                self.standings = StandingsFetcher()
-                self.standings.start()
-            rt = self.standings.ratings() if self.standings is not None else {}
-            if rt:
-                for v in snap.vehicles:
-                    v.sr, v.dr, v.country, v.dr_pct = rt.get(v.driver.strip(), ("", "", "", -1.0))
+            if self.use_ratings and self.ratings is None and sys.platform == "win32":
+                from .paths import app_dir
+                from .ratings_service import RatingsService
+                self.ratings = RatingsService(app_dir() / "data" / "ratings.json")
+                self.ratings.start()
+            if self.ratings is not None and self.use_ratings:
+                self._apply_ratings(snap)
             if self.pitest is None and sys.platform == "win32":
                 from .lmu_rest import PitEstimateFetcher
                 self.pitest = PitEstimateFetcher()
