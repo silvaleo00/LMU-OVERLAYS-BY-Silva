@@ -67,8 +67,16 @@ def find_app_root(folder: Path) -> Path | None:
     return None
 
 
+def updater_env(src: Path, dest: Path, pid: int, exe: Path) -> dict:
+    """As pastas vão para o script por variáveis de ambiente: assim nomes com acentos (ex.
+    "Área de Trabalho", "João") passam intactos. Escritas dentro do .bat, o cmd estragava-as."""
+    return {"LMU_SRC": str(src), "LMU_DEST": str(dest), "LMU_PID": str(pid), "LMU_EXE": str(exe),
+            "LMU_WORK": str(src.parent)}
+
+
 def updater_script(src: Path, dest: Path, pid: int, exe: Path) -> str:
-    """Script .bat que espera a app fechar, copia a versão nova e volta a abrir a app."""
+    """Script .bat (só ASCII) que espera a app fechar, copia a versão nova e volta a abrir a app.
+    Os caminhos vêm das variáveis de updater_env()."""
     xf = " ".join(f'"{n}"' for n in KEEP)
     xd = " ".join(f'"{n}"' for n in KEEP_DIRS)
     return "\r\n".join([
@@ -76,12 +84,12 @@ def updater_script(src: Path, dest: Path, pid: int, exe: Path) -> str:
         "title LMU Overlays - a atualizar",
         "echo A atualizar o LMU Overlays... nao feches esta janela.",
         ":espera",
-        f'tasklist /FI "PID eq {pid}" 2>nul | find "{pid}" >nul',
+        'tasklist /FI "PID eq %LMU_PID%" 2>nul | find "%LMU_PID%" >nul',
         "if not errorlevel 1 (timeout /t 1 /nobreak >nul & goto espera)",
-        f'robocopy "{src}" "{dest}" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /XF {xf} /XD {xd}',
+        f'robocopy "%LMU_SRC%" "%LMU_DEST%" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /XF {xf} /XD {xd}',
         "if errorlevel 8 (echo A copia falhou. & pause & exit /b 1)",
-        f'start "" "{exe}"',
-        f'rmdir /s /q "{src.parent}" >nul 2>nul',
+        'start "" "%LMU_EXE%"',
+        'rmdir /s /q "%LMU_WORK%" >nul 2>nul',
         '(goto) 2>nul & del "%~f0"',
         "",
     ])
@@ -179,8 +187,9 @@ class Updater:
         if root is None:
             raise ValueError(f"o zip não tem {EXE_NAME}")
         script = work / "atualizar.bat"
-        script.write_text(updater_script(root, self.install_dir, os.getpid(), self.install_dir / EXE_NAME),
-                          encoding="cp1252", errors="replace")
+        exe = self.install_dir / EXE_NAME
+        script.write_text(updater_script(root, self.install_dir, os.getpid(), exe), encoding="ascii")
+        self.env = updater_env(root, self.install_dir, os.getpid(), exe)
         return script
 
     def apply(self) -> bool:
@@ -188,8 +197,9 @@ class Updater:
         if self.state != "ready" or not self.script or sys.platform != "win32":
             return False
         import subprocess
+        env = {**os.environ, **(getattr(self, "env", None) or {})}
         subprocess.Popen(["cmd", "/c", str(self.script)], creationflags=0x00000010,   # CREATE_NEW_CONSOLE
-                         close_fds=True, cwd=str(self.script.parent))
+                         close_fds=True, cwd=str(self.script.parent), env=env)
         return True
 
     @staticmethod

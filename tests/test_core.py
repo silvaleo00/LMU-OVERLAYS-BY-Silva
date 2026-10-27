@@ -772,8 +772,9 @@ def test_updater():
             z.writestr("LMU Overlays/_internal/x.dll", b"x")
         up = U.Updater("eu/repo", install)
         script = up.prepare(zp, tmp / "work")
-        txt = script.read_text("cp1252")
-        assert "robocopy" in txt and '"config.json"' in txt and '"data"' in txt and str(install) in txt
+        txt = script.read_text("ascii")                    # o .bat só tem ASCII; os caminhos vão no ambiente
+        assert up.env["LMU_DEST"] == str(install) and "%LMU_DEST%" in txt
+        assert "robocopy" in txt and '"config.json"' in txt and '"data"' in txt
         assert (tmp / "work" / "novo" / "LMU Overlays" / "LMU Overlays.exe").exists()
         bad = tmp / "bad.zip"
         with zipfile.ZipFile(bad, "w") as z:
