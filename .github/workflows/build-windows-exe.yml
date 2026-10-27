@@ -5,7 +5,8 @@ name: build-windows-exe
 #  - Publica quando o lmuov/version.py muda no main e essa versão ainda não existe.
 #  - Onde publica: se existirem os segredos RELEASES_REPO ("utilizador/repo-publico") e
 #    RELEASES_TOKEN, publica nesse repositório PÚBLICO só de versões (o código pode então ficar
-#    num repositório PRIVADO). Sem eles, publica neste mesmo repositório.
+#    num repositório PRIVADO). Publica sempre também neste repositório: as apps antigas, que ainda
+#    procuram aqui, recebem essa versão e passam a procurar no repositório público de versões.
 
 on:
   workflow_dispatch:
@@ -91,8 +92,8 @@ jobs:
         with:
           name: LMU_Overlays_Windows
           path: dist/LMU_Overlays_Windows.zip
-      - name: Publicar a versão (este repositório)
-        if: steps.ver.outputs.publish == 'true' && env.RELEASES_REPO == ''
+      - name: Publicar a versão (este repositório; também serve de ponte para as apps antigas)
+        if: steps.ver.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.ver.outputs.version }}
