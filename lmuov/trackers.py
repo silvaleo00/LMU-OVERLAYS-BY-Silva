@@ -652,6 +652,8 @@ class Context:
     tl_last_add: float = 0.0      # quanto subiu da última vez
     hits: list = field(default_factory=list)     # danos novos: (instante, painel, nível)
     avg5: dict = field(default_factory=dict)     # id do carro -> média das últimas 5 voltas
+    sec_delta: list = field(default_factory=lambda: [None, None, None])   # ganho/perda em cada setor desta volta
+    sec_last: list = field(default_factory=lambda: [None, None, None])    # ... da volta anterior
 
     def since(self, name: str) -> float:
         """Segundos desde o evento (infinito se nunca aconteceu)."""
@@ -754,4 +756,26 @@ class Trackers:
         self.ctx.tl_last_add = self.events.tl_last_add
         self.ctx.weather = self.weather.update(snap)
         self.ctx.avg5 = self.laps.update(snap)
+        self._sector_deltas(snap)
         return self.ctx
+
+    def _sector_deltas(self, snap) -> None:
+        """Quanto ganhaste/perdeste em cada setor (pelo delta para a volta de referência)."""
+        sec, d = snap.me.sector, self.ctx.delta
+        prev = getattr(self, "_sd_sec", None)
+        if prev is None:
+            self._sd_sec, self._sd_start = sec, d.delta
+            return
+        if sec != prev:
+            cur = self.ctx.sec_delta
+            if d.has_ref and 0 <= prev < 3:
+                end = self._sd_last_delta if sec == 0 else d.delta    # na meta o delta volta a 0
+                cur[prev] = end - self._sd_start
+            if sec == 0:
+                self.ctx.sec_last = list(cur)
+                self.ctx.sec_delta = [None, None, None]
+                self._sd_start = 0.0
+            else:
+                self._sd_start = d.delta
+            self._sd_sec = sec
+        self._sd_last_delta = d.delta

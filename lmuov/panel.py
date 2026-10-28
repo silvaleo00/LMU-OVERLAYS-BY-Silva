@@ -287,20 +287,22 @@ class ControlPanel(QWidget):
             mode.setFixedWidth(104)
             mode.currentIndexChanged.connect(lambda _i, w=win, m=mode: app.set_mode(w, m.currentData()))
             row.addWidget(mode)
-            design = {"damage": ("design", "blueprint", ("blueprint", "engineer", "exploded", "corners", "heatmap", "mini"),
-                                 "dmgd", "ui.dmg_design"),
-                      "delta": ("style", "bar", ("bar", "full"), "deltad", "ui.delta_style"),
-                      "tyres": ("temp_source", "inner", ("inner", "surface", "carcass"), "tsrc", "ui.tyre_src")}.get(win.ov.key)
-            if design:                                  # escolher o design (dano) ou o estilo (delta)
-                opt, dflt, values, pre, tip = design
-                des = QComboBox()
-                for d in values:
-                    des.addItem(tr(f"{pre}.{d}"), d)
-                des.setCurrentIndex(max(0, des.findData(win.ocfg.get(opt, dflt))))
-                des.setToolTip(tr(tip))
-                des.setFixedWidth(150)
-                des.currentIndexChanged.connect(lambda _i, c=des, k=win.ov.key, o=opt: app.set_overlay_opt(k, o, c.currentData()))
-                row.addWidget(des)
+        design = {"damage": ("design", "blueprint", ("blueprint", "engineer", "exploded", "corners", "heatmap", "mini"),
+                             "dmgd", "ui.dmg_design"),
+                  "delta": ("style", "bar", ("bar", "full"), "deltad", "ui.delta_style"),
+                  "tyres": ("temp_source", "inner", ("inner", "surface", "carcass"), "tsrc", "ui.tyre_src"),
+                  "lap_counter": ("design", "board", ("classic", "board", "strip", "tv", "minimal"), "lcd",
+                                  "ui.lc_design")}.get(win.ov.key)
+        if design:                                  # escolher o design (dano) ou o estilo (delta)
+            opt, dflt, values, pre, tip = design
+            des = QComboBox()
+            for d in values:
+                des.addItem(tr(f"{pre}.{d}"), d)
+            des.setCurrentIndex(max(0, des.findData(win.ocfg.get(opt, dflt))))
+            des.setToolTip(tr(tip))
+            des.setFixedWidth(150)
+            des.currentIndexChanged.connect(lambda _i, c=des, k=win.ov.key, o=opt: app.set_overlay_opt(k, o, c.currentData()))
+            row.addWidget(des)
         if win.ov.key in ("relative", "standings"):    # colunas e estilo
             b = QPushButton("⚙  " + tr("cols.btn"))
             b.setFixedWidth(104)
